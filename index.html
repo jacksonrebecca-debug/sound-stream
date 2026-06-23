@@ -1,1 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sound Stream</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#16314f;--paper:#eef6f5;--card:#ffffff;
+    --stream:#13a3a3;--stream-deep:#0d7d83;--coral:#f59257;--gold:#f4b740;
+    --good:#3aa873;--soft:#7d92a3;--line:#dce9e8;
+    --shadow:0 14px 40px -18px rgba(13,80,86,.45);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Nunito',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:radial-gradient(120% 90% at 50% -10%,#f7fbfa 0%,var(--paper) 55%,#e3f0ee 100%);
+    color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;
+    display:flex;flex-direction:column;align-items:center;padding:18px 16px 40px}
+  .wrap{width:100%;max-width:520px}
 
+  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+  .brand{display:flex;align-items:center;gap:10px}
+  .logo{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,var(--stream),var(--stream-deep));
+    display:grid;place-items:center;color:#fff;font-family:'Fredoka';font-weight:600;font-size:22px;box-shadow:var(--shadow)}
+  .brand h1{font-family:'Fredoka';font-weight:600;font-size:21px}
+  .brand p{font-size:12px;color:var(--soft);font-weight:700;margin-top:-2px}
+  .stats{display:flex;gap:8px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:7px 11px;text-align:center;min-width:58px}
+  .stat b{display:block;font-family:'Fredoka';font-size:18px;line-height:1}
+  .stat span{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--soft)}
+  .stat.flame b{color:var(--coral)}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:26px 22px 24px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+
+  /* home hero */
+  .eyebrow{font-family:'Fredoka';font-weight:500;font-size:12px;color:var(--stream-deep);text-transform:uppercase;letter-spacing:1.6px}
+  .hero-h{font-family:'Fredoka';font-weight:600;font-size:30px;margin:6px 0 2px}
+  .hero-focus{font-size:15px;font-weight:800;color:var(--soft);margin-bottom:4px}
+  .hero-focus b{color:var(--stream-deep)}
+  .est{font-size:13px;color:var(--soft);font-weight:700;margin-bottom:20px}
+  .done-badge{display:inline-flex;align-items:center;gap:7px;background:#e9f7f0;color:var(--good);
+    font-family:'Fredoka';font-weight:500;font-size:14px;padding:8px 14px;border-radius:999px;margin-bottom:16px}
+
+  /* mission strip */
+  .mission-strip{margin-top:16px;border:1px dashed #cfe6e2;border-radius:18px;padding:15px 16px;background:#f6fbfa}
+  .mission-strip .ttl{font-family:'Fredoka';font-weight:500;font-size:12px;color:var(--coral);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:6px}
+  .mission-strip .txt{font-size:15.5px;font-weight:700;line-height:1.4}
+  .mission-check{display:flex;align-items:center;gap:10px;margin-top:12px;cursor:pointer;font-weight:800;font-size:14px;color:var(--ink)}
+  .tick{width:24px;height:24px;border-radius:8px;border:2px solid var(--line);display:grid;place-items:center;transition:.16s;flex:0 0 24px}
+  .tick.on{background:var(--good);border-color:var(--good);color:#fff}
+
+  .links{text-align:center;margin-top:18px}
+  .links a{font-size:13px;font-weight:800;color:var(--soft);cursor:pointer;border-bottom:1.5px dotted var(--soft);padding-bottom:1px}
+
+  /* session */
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+  .dots{display:flex;gap:7px}
+  .dot{width:9px;height:9px;border-radius:50%;background:#dbeae8}
+  .dot.on{background:var(--stream)}
+  .dot.done{background:var(--gold)}
+  .exit{background:none;border:none;color:var(--soft);font-weight:800;font-size:14px;cursor:pointer}
+
+  .level-name{font-family:'Fredoka';font-weight:500;font-size:13px;color:var(--stream-deep);text-transform:uppercase;letter-spacing:1.4px}
+  .hint{font-size:13.5px;color:var(--soft);font-weight:700;margin-top:3px;min-height:18px}
+
+  .target{font-family:'Fredoka';font-weight:600;text-align:center;line-height:1.18;margin:20px 0 6px;word-break:break-word}
+  .target.word{font-size:54px}
+  .target.sentence{font-size:28px}
+  .target.prompt{font-size:23px;font-weight:500}
+  .target .s{color:var(--stream)}
+
+  canvas{width:100%;height:78px;display:block;margin:14px 0 4px}
+
+  .steps{display:flex;flex-direction:column;gap:12px;margin:16px 4px}
+  .step{display:flex;gap:14px;align-items:flex-start}
+  .step .n{flex:0 0 30px;height:30px;border-radius:50%;background:#e3f4f1;color:var(--stream-deep);font-family:'Fredoka';font-weight:600;display:grid;place-items:center;font-size:15px}
+  .step p{font-size:15px;font-weight:700;line-height:1.4;padding-top:3px}
+  .step p em{color:var(--stream);font-style:normal;font-family:'Fredoka';font-weight:600}
+
+  .slide-dots{display:flex;gap:12px;justify-content:center;margin:8px 0 4px}
+  .sd{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-family:'Fredoka';color:var(--soft);transition:.16s}
+  .sd.on{background:var(--stream);border-color:var(--stream);color:#fff}
+
+  .controls{display:flex;flex-direction:column;gap:10px;margin-top:18px}
+  .row{display:flex;gap:10px}
+  button.btn{flex:1;border:none;border-radius:16px;padding:15px;font-family:'Fredoka';font-weight:500;font-size:16px;cursor:pointer;transition:.16s;display:flex;align-items:center;justify-content:center;gap:8px}
+  .btn-say{background:linear-gradient(135deg,var(--stream),var(--stream-deep));color:#fff;box-shadow:var(--shadow)}
+  .btn-say:active{transform:translateY(1px)}
+  .btn-clean{background:var(--good);color:#fff}
+  .btn-nearly{background:#fff;color:var(--ink);border:1.5px solid var(--line)}
+  .btn-ghost{background:#f3f8f7;color:var(--stream-deep);border:1px solid var(--line);font-size:14px;flex:0 0 auto;padding:13px 16px}
+  .btn-next{background:var(--ink);color:#fff}
+  .btn-big{background:linear-gradient(135deg,var(--stream),var(--stream-deep));color:#fff;box-shadow:var(--shadow);font-size:18px;padding:18px;width:100%}
+  .btn:disabled{opacity:.45;cursor:default}
+
+  .feedback{text-align:center;font-family:'Fredoka';font-weight:500;font-size:17px;min-height:24px;margin-top:4px}
+  .feedback.good{color:var(--good)}
+  .feedback.try{color:var(--coral)}
+
+  .progress{display:flex;align-items:center;gap:10px;margin-top:20px}
+  .bar{flex:1;height:8px;background:#e7f1f0;border-radius:99px;overflow:hidden}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--stream),var(--gold));width:0;transition:.4s}
+  .progress span{font-size:12px;font-weight:800;color:var(--soft)}
+
+  /* mission picker */
+  .pick{border:1.5px solid var(--line);border-radius:16px;padding:15px 16px;font-size:15px;font-weight:700;line-height:1.4;cursor:pointer;transition:.16s;background:#fff}
+  .pick:hover{border-color:#bfe5df}
+  .pick.sel{border-color:var(--coral);background:#fff7f1}
+  .picklist{display:flex;flex-direction:column;gap:10px;margin:16px 0 4px}
+
+  .mic-note{font-size:11.5px;color:var(--soft);font-weight:700;text-align:center;margin-top:14px;line-height:1.5}
+  .recording{color:var(--coral)!important}
+  footer{text-align:center;margin-top:22px;font-size:12px;color:var(--soft);font-weight:700;line-height:1.6}
+
+  /* free practice pills */
+  .levels{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 10px;scrollbar-width:none}
+  .levels::-webkit-scrollbar{display:none}
+  .pill{flex:0 0 auto;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:9px 15px;font-family:'Fredoka';font-weight:500;font-size:14px;color:var(--soft);cursor:pointer;transition:.18s;white-space:nowrap}
+  .pill[aria-selected="true"]{background:linear-gradient(135deg,var(--stream),var(--stream-deep));color:#fff;border-color:transparent}
+
+  @media (prefers-reduced-motion: reduce){*{transition:none!important}}
+  :focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="logo">s</div>
+      <div><h1>Sound Stream</h1><p>a little s practice, every day</p></div>
+    </div>
+    <div class="stats">
+      <div class="stat flame"><b id="streak">0</b><span>day streak</span></div>
+      <div class="stat"><b id="today">0</b><span>today</span></div>
+    </div>
+  </header>
+  <div id="app"></div>
+  <footer>
+    A clean <b>s</b> is one smooth stream of air down the middle of the tongue.<br>
+    Made for Leonora — five minutes is plenty.
+  </footer>
+</div>
+
+<script>
+"use strict";
+
+/* ---------- safe storage ---------- */
+const store={
+  get(k,f){try{const v=localStorage.getItem(k);return v===null?f:JSON.parse(v);}catch(e){return f;}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+};
+const todayKey=()=>new Date().toISOString().slice(0,10);
+const yesterdayKey=()=>{const d=new Date();d.setDate(d.getDate()-1);return d.toISOString().slice(0,10);};
+
+/* ---------- content ---------- */
+const WORDS={
+  Beginning:["sun","soap","sock","sand","soup","salt","seal","sing","seven","sister","sausage","sandwich","sofa","summer","sea","say","sail","six"],
+  Middle:["pencil","bicycle","castle","whisper","eraser","dinosaur","listen","glasses","basket","whistle","tasty","juicy","racing","messy"],
+  End:["bus","glass","dress","kiss","mouse","house","grass","class","ice","juice","race","face","nice","horse","goose","purse"]
+};
+const ALL_WORDS=[...WORDS.Beginning,...WORDS.Middle,...WORDS.End];
+const BLENDS=["spoon","spider","sport","space","spin","star","stop","story","stand","stone","sky","skip","skate","school","snake","snow","snail","snack","smile","small","smell","slide","sleep","slow","swim","swing","sweet","swan","spell","stairs"];
+const SENTENCES=["The sun is so warm today.","Sam sees seven seals.","I see a small spider.","Let's race to the castle.","She said yes to the surprise.","Six swans swim slowly.","Sophie is so silly sometimes.","Pass me the salt, please.","We saw a seal by the sea.","My sister has a soft scarf.","Seven stars shine in the sky.","Let's stop at the shop for snacks.","The snail is slow but steady.","Sand slips through my fingers.","She skipped past the school gates.","Sausages sizzle on the stove.","Slow down and say it smoothly.","A spider spun a silky web.","Saturday is the best day.","Susan saw six sleepy swans."];
+const PROMPTS=["Tell me about your best summer ever.","What's your favourite season, and why?","Describe something special in your school bag.","If you could see any animal, which would you pick?","What would you cook for a surprise supper?","Tell me a story about a snake and a mouse.","What's the silliest thing that happened this week?","Describe your dream house, room by room.","If you started a school club, what would it be?","Tell me about somewhere you'd love to visit.","Describe your perfect Saturday.","Tell me about your favourite story or book.","If you could swap places with anyone for a day, who?","What makes a really good friend?","Describe a place that feels special to you.","Tell me about something you're proud of.","What's a skill you'd love to learn?","Tell me about the best present you've been given."];
+const MISSIONS=["Order your own drink or snack — say it slow and smooth.","Read one page of your book out loud at bedtime.","Tell someone one nice thing that happened today.","Count out loud to twenty — listen on six, seven, sixteen.","Ask at dinner: \u201Cplease could you pass the\u2026\u201D","Teach someone the t \u2192 s slide trick.","Say good morning to the first seven people you see.","Name three things you can spot, each with a clean s.","Phone a grandparent and tell them a small story.","Say the days of the week, nice and slow.","Tell a joke to someone and watch for your s.","Ask for something in a shop yourself.","Describe your supper to someone at the table.","Read a recipe step out loud while you cook.","Introduce yourself to someone new this week.","Tell someone your three favourite things, slow and smooth."];
+
+/* ---------- weekly focus rotation (weighted to connected speech) ---------- */
+const FOCUS_BY_DAY=[
+  {type:"chatter",label:"chatter"},                    /* Sun */
+  {type:"words",pos:"Beginning",label:"words \u2014 beginning sounds"}, /* Mon */
+  {type:"sentences",label:"sentences"},                /* Tue */
+  {type:"blends",label:"tricky blends"},               /* Wed */
+  {type:"sentences",label:"sentences"},                /* Thu */
+  {type:"chatter",label:"chatter"},                    /* Fri */
+  {type:"words",pos:"Middle",label:"words \u2014 middle sounds"}        /* Sat */
+];
+function todaysFocus(){return FOCUS_BY_DAY[new Date().getDay()];}
+
+/* ---------- state ---------- */
+let streak=store.get("ss_streak",0);
+let lastDone=store.get("ss_lastDone",null);
+let today=(function(){const t=store.get("ss_today",{day:null,n:0});return t.day===todayKey()?t.n:0;})();
+
+function renderStats(){document.getElementById("streak").textContent=streak;document.getElementById("today").textContent=today;}
+function bumpToday(){today++;store.set("ss_today",{day:todayKey(),n:today});renderStats();}
+function doneToday(){return lastDone===todayKey();}
+function completeSession(){
+  const tk=todayKey();
+  if(lastDone!==tk){
+    if(lastDone===yesterdayKey())streak+=1; else streak=1;
+    lastDone=tk;store.set("ss_lastDone",tk);store.set("ss_streak",streak);
+  }
+  renderStats();
+}
+
+/* mission for today */
+function getMission(){const m=store.get("ss_mission",null);return (m&&m.day===todayKey())?m:null;}
+function setMission(text){store.set("ss_mission",{day:todayKey(),text,done:false});}
+function toggleMissionDone(){const m=getMission();if(m){m.done=!m.done;store.set("ss_mission",m);}return getMission();}
+
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function markS(t){return t.replace(/s/gi,m=>`<span class="s">${m}</span>`);}
+function pick(a){return a[Math.floor(Math.random()*a.length)];}
+
+const app=document.getElementById("app");
+
+/* ===================== HOME ===================== */
+function home(){
+  stopStream();
+  const f=todaysFocus();
+  const m=getMission();
+  let html=`<section class="card"><div class="eyebrow">Today</div>`;
+
+  if(doneToday()){
+    html+=`<div class="hero-h">Nice work today</div>
+      <div class="done-badge">\u2713 Practice done \u00b7 ${streak}-day streak</div>
+      <div class="hero-focus">Today was <b>${f.label}</b>. ${today} reps so far.</div>`;
+  }else{
+    html+=`<div class="hero-h">Ready for today?</div>
+      <div class="hero-focus">Today's focus: <b>${f.label}</b></div>
+      <div class="est">Warm up \u00b7 one listening rep \u00b7 ${f.label} \u00b7 a real-world mission \u2014 about 4 minutes.</div>`;
+  }
+  html+=`<button class="btn btn-big" id="start">${doneToday()?"Go again":"Start today's practice"}</button>`;
+
+  /* mission strip */
+  if(m){
+    html+=`<div class="mission-strip"><div class="ttl">Today's real-world mission</div>
+      <div class="txt">${m.text}</div>
+      <div class="mission-check" id="mtog"><span class="tick ${m.done?"on":""}">${m.done?"\u2713":""}</span>
+      <span>${m.done?"Done \u2014 brilliant!":"Tick this off once you've done it"}</span></div></div>`;
+  }
+  html+=`<div class="links"><a id="free">Practise freely \u2192</a> &nbsp;\u00b7&nbsp; <a id="grown">For grown-ups</a></div></section>`;
+  app.innerHTML=html;
+
+  document.getElementById("start").onclick=startSession;
+  document.getElementById("free").onclick=freePractice;
+  document.getElementById("grown").onclick=grownups;
+  if(m){document.getElementById("mtog").onclick=()=>{toggleMissionDone();home();};}
+}
+
+/* ===================== SESSION ===================== */
+let session=null;
+function startSession(){
+  const f=todaysFocus();
+  let items;
+  if(f.type==="words")items=shuffle(WORDS[f.pos]).slice(0,6).map(w=>({text:w,cls:"word"}));
+  else if(f.type==="blends")items=shuffle(BLENDS).slice(0,6).map(w=>({text:w,cls:"word"}));
+  else if(f.type==="sentences")items=shuffle(SENTENCES).slice(0,4).map(w=>({text:w,cls:"sentence"}));
+  else items=shuffle(PROMPTS).slice(0,2).map(w=>({text:w,cls:"prompt",chatter:true}));
+
+  session={step:0,focus:f,items,fi:0,missionOpts:shuffle(MISSIONS).slice(0,3),chosen:getMission()?getMission().text:null};
+  renderStep();
+}
+const STEP_LABELS=["Warm up","Listen","Focus","Mission"];
+function dotsHTML(){
+  return `<div class="dots">`+[0,1,2,3].map(i=>`<span class="dot ${i<session.step?"done":i===session.step?"on":""}"></span>`).join("")+`</div>`;
+}
+function topbar(){return `<div class="topbar">${dotsHTML()}<button class="exit" id="exit">Exit</button></div>`;}
+function wireExit(){const e=document.getElementById("exit");if(e)e.onclick=()=>{stopStream();home();};}
+
+function renderStep(){
+  stopStream();
+  if(session.step===0)stepWarmup();
+  else if(session.step===1)stepListen();
+  else if(session.step===2)stepFocus();
+  else if(session.step===3)stepMission();
+  else stepDone();
+}
+function nextStep(){session.step++;renderStep();}
+
+/* --- step 0: warm-up --- */
+function stepWarmup(){
+  let done=0;
+  app.innerHTML=`<section class="card">${topbar()}
+    <div class="level-name">Warm up your s</div>
+    <div class="hint">Find the spot, then slide the air out smoothly.</div>
+    <div class="steps">
+      <div class="step"><div class="n">1</div><p>Tap a sharp <em>t</em> \u2014 tongue just behind your top teeth.</p></div>
+      <div class="step"><div class="n">2</div><p>From that exact spot, let it slide: <em>t \u2192 ssssss</em>.</p></div>
+    </div>
+    <canvas class="stream"></canvas>
+    <div class="slide-dots" id="sd">${[1,2,3].map(n=>`<div class="sd" data-n="${n}">${n}</div>`).join("")}</div>
+    <div class="controls"><button class="btn btn-say" id="slide">\ud83c\udf0a Do a slide</button></div></section>`;
+  wireExit();drawStream(0);
+  document.getElementById("slide").onclick=()=>{
+    runStream();setTimeout(stopStream,1800);
+    done++;const d=document.querySelector(`.sd[data-n="${done}"]`);if(d)d.classList.add("on");
+    if(done>=3){document.getElementById("slide").textContent="\u2713 Warmed up";document.getElementById("slide").disabled=true;setTimeout(nextStep,700);}
+  };
+}
+
+/* --- step 1: listening rep --- */
+function stepListen(){
+  const word=pick(ALL_WORDS);
+  app.innerHTML=`<section class="card">${topbar()}
+    <div class="level-name">Your listening rep</div>
+    <div class="hint">Record yourself, then listen back \u2014 this is the bit that really helps.</div>
+    <div class="target word">${markS(word)}</div>
+    <canvas class="stream"></canvas>
+    <div class="controls">
+      <div class="row"><button class="btn btn-ghost" id="rec" style="flex:1">\u25cf Record</button>
+      <button class="btn btn-say" id="say" style="flex:1">\ud83d\udd0a Say it</button></div>
+      <div class="row" id="rate" style="display:none">
+        <button class="btn btn-clean" id="clean">\u2713 Clean s</button>
+        <button class="btn btn-nearly" id="nearly">Nearly</button></div>
+      <div class="feedback" id="fb"></div>
+    </div>
+    <p class="mic-note" id="micNote"></p></section>`;
+  wireExit();drawStream(0);
+  document.getElementById("say").onclick=()=>{runStream();setTimeout(stopStream,2400);showRate();};
+  document.getElementById("rec").onclick=function(){toggleRecord(this);showRate();};
+  function showRate(){document.getElementById("rate").style.display="flex";}
+  document.getElementById("clean").onclick=()=>rateAdvance(true,nextStep);
+  document.getElementById("nearly").onclick=()=>rateAdvance(false,nextStep);
+}
+
+/* --- step 2: focus (multiple items) --- */
+function stepFocus(){
+  const it=session.items[session.fi];
+  const total=session.items.length;
+  app.innerHTML=`<section class="card">${topbar()}
+    <div class="level-name">Today \u2014 ${session.focus.label}</div>
+    <div class="hint">${it.chatter?"Talk for a bit. Listen for your own clean s.":"Say it slow, keep every s smooth."}</div>
+    <div class="target ${it.cls}">${markS(it.text)}</div>
+    <canvas class="stream"></canvas>
+    <div class="controls">
+      <button class="btn btn-say" id="say">${it.chatter?"\ud83c\udf99 Talk":"\ud83d\udd0a Say it"}</button>
+      <div class="row" id="rate" style="display:none">
+        <button class="btn btn-clean" id="clean">${it.chatter?"Lots of clean s \ud83c\udf0a":"\u2713 Clean s"}</button>
+        <button class="btn btn-nearly" id="nearly">${it.chatter?"A few slushy ones":"Nearly"}</button></div>
+      <div class="feedback" id="fb"></div>
+    </div>
+    <div class="progress"><div class="bar"><i style="width:${session.fi/total*100}%"></i></div>
+      <span>${session.fi+1} / ${total}</span></div></section>`;
+  wireExit();drawStream(0);
+  document.getElementById("say").onclick=()=>{runStream();setTimeout(stopStream,it.chatter?4200:2400);document.getElementById("rate").style.display="flex";};
+  const adv=()=>{if(session.fi<total-1){session.fi++;stepFocus();}else nextStep();};
+  document.getElementById("clean").onclick=()=>rateAdvance(true,adv);
+  document.getElementById("nearly").onclick=()=>rateAdvance(false,adv);
+}
+
+/* shared rate -> feedback -> callback */
+function rateAdvance(good,cb){
+  const rate=document.getElementById("rate");const fb=document.getElementById("fb");
+  bumpToday();
+  if(good){fb.className="feedback good";fb.textContent=pick(["Smooth! \ud83c\udf0a","That's the one.","Clean stream \u2014 lovely.","Crisp and clear."]);drawStream(0,true);}
+  else{fb.className="feedback try";fb.textContent=pick(["Nearly \u2014 try the t \u2192 s slide again.","Almost. One smooth stream down the middle.","Good try. Reset and slide it out."]);drawStream(2,false);}
+  rate.innerHTML=`<button class="btn btn-next" id="nx">Next \u2192</button>`;
+  document.getElementById("nx").onclick=cb;
+}
+
+/* --- step 3: mission --- */
+function stepMission(){
+  app.innerHTML=`<section class="card">${topbar()}
+    <div class="level-name" style="color:var(--coral)">Your real-world mission</div>
+    <div class="hint">Pick one tiny thing to do today, out in real life. This is where it really sticks.</div>
+    <div class="picklist" id="picks">
+      ${session.missionOpts.map((m,i)=>`<div class="pick ${session.chosen===m?"sel":""}" data-i="${i}">${m}</div>`).join("")}
+    </div>
+    <div class="controls"><button class="btn btn-big" id="go" ${session.chosen?"":"disabled"}>Lock it in \u2192</button></div></section>`;
+  wireExit();
+  document.querySelectorAll(".pick").forEach(p=>p.onclick=()=>{
+    session.chosen=session.missionOpts[+p.dataset.i];
+    document.querySelectorAll(".pick").forEach(x=>x.classList.remove("sel"));
+    p.classList.add("sel");document.getElementById("go").disabled=false;
+  });
+  document.getElementById("go").onclick=()=>{setMission(session.chosen);nextStep();};
+}
+
+/* --- done --- */
+function stepDone(){
+  completeSession();
+  const m=getMission();
+  app.innerHTML=`<section class="card" style="text-align:center">
+    <div class="target word" style="font-size:42px">All done \ud83c\udf89</div>
+    <p style="color:var(--soft);font-weight:800;font-size:15px;margin-top:6px">
+      ${today} reps today \u00b7 ${streak}-day streak</p>
+    <div class="mission-strip" style="text-align:left;margin-top:20px">
+      <div class="ttl">Don't forget your mission</div>
+      <div class="txt">${m?m.text:""}</div>
+      <p style="font-size:13px;color:var(--soft);font-weight:700;margin-top:8px">You can tick it off on the home screen once you've done it.</p>
+    </div>
+    <div class="controls" style="margin-top:20px"><button class="btn btn-big" id="back">Back to home</button></div>
+  </section>`;
+  document.getElementById("back").onclick=home;
+}
+
+/* ===================== FOR GROWN-UPS ===================== */
+function grownups(){
+  stopStream();
+  app.innerHTML=`<div class="topbar"><div></div><button class="exit" id="exit">\u2190 Home</button></div>
+  <section class="card">
+    <div class="level-name">For grown-ups</div>
+    <div class="hint">A two-minute read \u2014 the plan behind the game.</div>
+    <p style="font-size:15px;font-weight:700;line-height:1.55;margin:16px 0">
+      She can already make a clean <span class="s" style="color:var(--stream)">s</span> on its own. The job now isn't teaching the sound \u2014 it's moving it into everyday talking. That's slow, normal work, and short daily reps are exactly how it shifts.</p>
+    <div class="steps">
+      <div class="step"><div class="n">1</div><p><em>Warm up.</em> A few t \u2192 s slides to find the placement.</p></div>
+      <div class="step"><div class="n">2</div><p><em>Listen.</em> She records a word and hears it back \u2014 noticing it herself is what overwrites the old habit.</p></div>
+      <div class="step"><div class="n">3</div><p><em>Focus.</em> One level, different each day, leaning toward sentences and chatter.</p></div>
+      <div class="step"><div class="n">4</div><p><em>Mission.</em> One tiny real-world task she picks herself. This is the bit that actually generalises.</p></div>
+    </div>
+    <p style="font-size:14.5px;font-weight:700;line-height:1.55;margin-top:16px;color:var(--soft)">
+      Three things that help: keep it to once a day and short \u2014 stopping while she's still keen beats grinding; let <b>her</b> choose the mission so it never feels like a spotlight; and treat \u201CNearly\u201D as <i>not yet</i>, never wrong. Listening for her own clean s out in real life matters more than any drill in here.</p>
+    <p style="font-size:13px;font-weight:700;line-height:1.5;margin-top:14px;color:var(--soft)">
+      Not a substitute for her speech therapist \u2014 just somewhere to keep the daily reps ticking between sessions.</p>
+    <div class="controls" style="margin-top:18px"><button class="btn btn-big" id="back">Back to home</button></div>
+  </section>`;
+  wireExit();
+  document.getElementById("back").onclick=home;
+}
+
+/* ===================== FREE PRACTICE ===================== */
+const FREE=[
+  {name:"Warm-up",fn:()=>{startSession();session.step=0;renderStep();}},
+];
+function freePractice(){
+  stopStream();
+  const banks={
+    "Words":shuffle(ALL_WORDS).map(w=>({text:w,cls:"word"})),
+    "Tricky blends":shuffle(BLENDS).map(w=>({text:w,cls:"word"})),
+    "Sentences":shuffle(SENTENCES).map(w=>({text:w,cls:"sentence"})),
+    "Chatter":shuffle(PROMPTS).map(w=>({text:w,cls:"prompt",chatter:true}))
+  };
+  const names=Object.keys(banks);let cur=names[0],i=0;
+  function draw(){
+    const it=banks[cur][i%banks[cur].length];
+    app.innerHTML=`<div class="topbar"><div></div><button class="exit" id="exit">\u2190 Home</button></div>
+      <div class="levels">${names.map(n=>`<button class="pill" aria-selected="${n===cur}" data-n="${n}">${n}</button>`).join("")}</div>
+      <section class="card">
+        <div class="hint">${it.chatter?"Talk for a bit. Listen for your own clean s.":"Say it slow, keep every s smooth."}</div>
+        <div class="target ${it.cls}">${markS(it.text)}</div>
+        <canvas class="stream"></canvas>
+        <div class="controls"><button class="btn btn-say" id="say">${it.chatter?"\ud83c\udf99 Talk":"\ud83d\udd0a Say it"}</button>
+          <button class="btn btn-next" id="nx">Next \u2192</button></div>
+      </section>`;
+    wireExit();drawStream(0);
+    document.querySelectorAll(".pill").forEach(p=>p.onclick=()=>{cur=p.dataset.n;i=0;draw();});
+    document.getElementById("say").onclick=()=>{runStream();setTimeout(stopStream,it.chatter?4200:2400);};
+    document.getElementById("nx").onclick=()=>{i++;bumpToday();draw();};
+  }
+  draw();
+}
+
+/* ===================== airflow canvas ===================== */
+let anim=null,animOn=false;
+function curCanvas(){return document.querySelector(".stream");}
+function drawStream(t,smooth=true){
+  const c=curCanvas();if(!c)return;
+  const dpr=window.devicePixelRatio||1,w=c.clientWidth||480,h=78;
+  c.width=w*dpr;c.height=h*dpr;const x=c.getContext("2d");x.scale(dpr,dpr);x.clearRect(0,0,w,h);
+  const mid=h/2,g=x.createLinearGradient(0,0,w,0);
+  g.addColorStop(0,"#13a3a3");g.addColorStop(1,"#f4b740");
+  x.strokeStyle=g;x.lineWidth=4;x.lineCap="round";x.beginPath();
+  for(let i=0;i<=w;i+=4){const amp=smooth?10:4+Math.random()*16;const y=mid+Math.sin((i/38)+t)*amp;i===0?x.moveTo(i,y):x.lineTo(i,y);}
+  x.stroke();
+}
+function runStream(){
+  if(window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+  animOn=true;let t=0;cancelAnimationFrame(anim);
+  (function loop(){if(!animOn)return;t+=0.12;drawStream(t,true);anim=requestAnimationFrame(loop);})();
+}
+function stopStream(){animOn=false;cancelAnimationFrame(anim);}
+
+/* ===================== recording ===================== */
+let mediaRec=null,chunks=[],recording=false,lastURL=null;
+async function toggleRecord(btn){
+  const note=document.getElementById("micNote");
+  if(!navigator.mediaDevices||!window.MediaRecorder){if(note)note.textContent="Recording switches on once this is live on your website.";return;}
+  if(!recording){
+    try{
+      const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      mediaRec=new MediaRecorder(stream);chunks=[];
+      mediaRec.ondataavailable=e=>chunks.push(e.data);
+      mediaRec.onstop=()=>{const blob=new Blob(chunks,{type:"audio/webm"});if(lastURL)URL.revokeObjectURL(lastURL);
+        lastURL=URL.createObjectURL(blob);new Audio(lastURL).play();stream.getTracks().forEach(t=>t.stop());
+        if(note)note.textContent="Playing it back \u2014 smooth, or a little slushy?";};
+      mediaRec.start();recording=true;btn.classList.add("recording");btn.innerHTML="\u25a0 Stop";
+      if(note)note.textContent="Recording\u2026 say the word, then tap Stop.";
+    }catch(e){if(note)note.textContent="Couldn't reach the mic \u2014 that's okay, just say it and listen.";}
+  }else{mediaRec&&mediaRec.stop();recording=false;btn.classList.remove("recording");btn.innerHTML="\u25cf Record";}
+}
+window.addEventListener("resize",()=>{if(!animOn)drawStream(0);});
+
+/* ===================== go ===================== */
+renderStats();home();
+</script>
+</body>
+</html>
