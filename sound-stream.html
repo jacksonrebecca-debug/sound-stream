@@ -209,24 +209,36 @@ const app=$("app");
 /* ===================== voice + wave engine ===================== */
 const reduceMotion=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const Rec={supported:!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.MediaRecorder),
-  state:"idle",ctx:null,analyser:null,stream:null,mr:null,chunks:[],url:null,level:0,raf:null,uiTimer:null};
+  state:"idle",ctx:null,analyser:null,stream:null,source:null,buf:null,mr:null,chunks:[],url:null,level:0,raf:null,uiTimer:null};
 
+/* Build the mic engine ONCE and reuse it for every recording.
+   Creating a fresh AudioContext per recording trips Safari/iOS limits and
+   silently breaks every recording after the first. */
+async function ensureAudio(){
+  if(!Rec.stream||!Rec.stream.active){
+    Rec.stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    Rec.source=null;
+  }
+  if(!Rec.ctx){const AC=window.AudioContext||window.webkitAudioContext;Rec.ctx=new AC();}
+  if(!Rec.source){
+    Rec.source=Rec.ctx.createMediaStreamSource(Rec.stream);
+    Rec.analyser=Rec.ctx.createAnalyser();Rec.analyser.fftSize=512;
+    Rec.source.connect(Rec.analyser);
+    Rec.buf=new Uint8Array(Rec.analyser.fftSize);
+  }
+  try{await Rec.ctx.resume();}catch(e){}
+}
 async function recStart(){
+  await ensureAudio();
   Rec.chunks=[];Rec.level=0;
-  Rec.stream=await navigator.mediaDevices.getUserMedia({audio:true});
-  const AC=window.AudioContext||window.webkitAudioContext;
-  Rec.ctx=new AC();try{await Rec.ctx.resume();}catch(e){}
-  const src=Rec.ctx.createMediaStreamSource(Rec.stream);
-  Rec.analyser=Rec.ctx.createAnalyser();Rec.analyser.fftSize=512;src.connect(Rec.analyser);
-  const buf=new Uint8Array(Rec.analyser.fftSize);
   Rec.mr=new MediaRecorder(Rec.stream);
   Rec.mr.ondataavailable=e=>{if(e.data&&e.data.size)Rec.chunks.push(e.data);};
   Rec.mr.start();Rec.state="recording";
   (function loop(){
     if(Rec.state!=="recording")return;
-    Rec.analyser.getByteTimeDomainData(buf);
-    let s=0;for(let i=0;i<buf.length;i++){const v=(buf[i]-128)/128;s+=v*v;}
-    Rec.level=Math.sqrt(s/buf.length);
+    Rec.analyser.getByteTimeDomainData(Rec.buf);
+    let s=0;for(let i=0;i<Rec.buf.length;i++){const v=(Rec.buf[i]-128)/128;s+=v*v;}
+    Rec.level=Math.sqrt(s/Rec.buf.length);
     Rec.raf=requestAnimationFrame(loop);
   })();
 }
@@ -238,22 +250,20 @@ function recStop(){
       const blob=new Blob(Rec.chunks,{type:Rec.mr.mimeType||"audio/webm"});
       if(Rec.url)URL.revokeObjectURL(Rec.url);
       Rec.url=URL.createObjectURL(blob);
-      try{Rec.stream.getTracks().forEach(t=>t.stop());}catch(e){}
-      try{Rec.ctx.close();}catch(e){}
-      Rec.state="idle";res(Rec.url);
+      Rec.state="idle";res(Rec.url);   /* keep stream + ctx alive for the next item */
     };
     try{Rec.mr.stop();}catch(e){Rec.state="idle";res(null);}
   });
 }
-function recAbort(){
+function recAbort(){            /* cancel mid-recording, keep engine for reuse */
   clearInterval(Rec.uiTimer);
-  if(Rec.state==="recording"){
-    cancelAnimationFrame(Rec.raf);
-    try{Rec.mr.stop();}catch(e){}
-    try{Rec.stream.getTracks().forEach(t=>t.stop());}catch(e){}
-    try{Rec.ctx.close();}catch(e){}
-    Rec.state="idle";
-  }
+  if(Rec.state==="recording"){cancelAnimationFrame(Rec.raf);try{Rec.mr.stop();}catch(e){}Rec.state="idle";}
+}
+function recRelease(){          /* fully let go of the mic when leaving practice */
+  recAbort();
+  try{if(Rec.stream)Rec.stream.getTracks().forEach(t=>t.stop());}catch(e){}
+  try{if(Rec.ctx)Rec.ctx.close();}catch(e){}
+  Rec.stream=null;Rec.ctx=null;Rec.source=null;Rec.analyser=null;Rec.buf=null;
 }
 function recPlay(){if(Rec.url){try{const a=new Audio(Rec.url);a.play();}catch(e){}}}
 
@@ -323,11 +333,18 @@ function wirePractice(it,onDone){
     if(!Rec.supported){sayItOnly();return;}
     try{await recStart();}
     catch(e){
-      Rec.supported=false;
-      primary.textContent=it.chatter?"\ud83d\udd0a Talk":"\ud83d\udd0a Say it";
-      justsay.style.display="none";
-      note.textContent="Couldn't reach the microphone \u2014 that's okay. Say it out loud and listen to yourself.";
-      sayItOnly();return;
+      const fatal=e&&(e.name==="NotAllowedError"||e.name==="NotFoundError"||e.name==="SecurityError"||e.name==="NotReadableError");
+      if(fatal){
+        Rec.supported=false;
+        primary.textContent=it.chatter?"\ud83d\udd0a Talk":"\ud83d\udd0a Say it";
+        justsay.style.display="none";
+        note.textContent="Couldn't reach the microphone \u2014 that's okay. Say it out loud and listen to yourself.";
+        sayItOnly();
+      }else{
+        note.textContent="Didn't quite catch that \u2014 tap Record to try again.";
+        setWave("idle");
+      }
+      return;
     }
     primary.textContent="\u25a0 Stop";primary.classList.add("btn-rec");
     justsay.style.display="none";
@@ -378,7 +395,7 @@ function wirePractice(it,onDone){
 
 /* ===================== HOME ===================== */
 function home(){
-  recAbort();setWave("still");
+  recRelease();setWave("still");
   const f=todaysFocus(),m=getMission();
   let html=`<section class="card"><div class="eyebrow">Today</div>`;
   if(doneToday()){
@@ -418,7 +435,7 @@ function startSession(){
 }
 function dotsHTML(){return `<div class="dots">`+[0,1,2,3].map(i=>`<span class="dot ${i<session.step?"done":i===session.step?"on":""}"></span>`).join("")+`</div>`;}
 function topbar(){return `<div class="topbar">${dotsHTML()}<button class="exit" id="exit">Exit</button></div>`;}
-function wireExit(){const e=$("exit");if(e)e.onclick=()=>{recAbort();home();};}
+function wireExit(){const e=$("exit");if(e)e.onclick=()=>{recRelease();home();};}
 function renderStep(){
   recAbort();
   if(session.step===0)stepWarmup();
@@ -501,7 +518,7 @@ function stepDone(){
 
 /* ===================== FOR GROWN-UPS ===================== */
 function grownups(){
-  recAbort();
+  recRelease();
   app.innerHTML=`<div class="topbar"><div></div><button class="exit" id="exit">\u2190 Home</button></div>
   <section class="card">
     <div class="level-name">For grown-ups</div>
